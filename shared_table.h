@@ -16,6 +16,7 @@ struct Event {
 };
 
 enum QueryType { INQUIRY, BOOKING, CANCELLATION, NONE };
+// Structure to represent an active query in the shared table
 
 struct QueryEntry {
     int event_number = -1; 
@@ -50,3 +51,5 @@ void barrier_wait(MacBarrier *barrier);
 bool can_admit_query(int event_id, QueryType type);
 int add_query_to_table(int event_id, QueryType type, int thread_id);
 void remove_query_from_table(int index);
+
+extern bool system_running;

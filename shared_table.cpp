@@ -1,9 +1,9 @@
 
 #include "shared_table.h"
-
+using namespace std;
 // Initialize global vectors
-std::vector<Event> events(NUM_EVENTS);
-std::vector<QueryEntry> shared_table(MAX_ACTIVE_QUERIES);
+vector<Event> events(NUM_EVENTS);
+vector<QueryEntry> shared_table(MAX_ACTIVE_QUERIES);
 
 // Initialize synchronization primitives
 pthread_mutex_t table_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -48,8 +48,8 @@ bool can_admit_query(int event_id, QueryType type) {
 
 int add_query_to_table(int event_id, QueryType type, int thread_id) {
     for (int i = 0; i < MAX_ACTIVE_QUERIES; ++i) {
-        if (shared_table[i].event_number == -1) { // Find a blank entry [cite: 116]
-            shared_table[i] = {event_id, type, thread_id}; // Fill the entry [cite: 122]
+        if (shared_table[i].event_number == -1) { // Find a blank entry 
+            shared_table[i] = {event_id, type, thread_id}; // Fill the entry 
             return i;
         }
     }
@@ -57,7 +57,7 @@ int add_query_to_table(int event_id, QueryType type, int thread_id) {
 }
 
 void remove_query_from_table(int index) {
-    shared_table[index].event_number = -1; // Remove entry after completing query [cite: 123]
+    shared_table[index].event_number = -1; // Remove entry after completing query 
     shared_table[index].type = NONE;
     shared_table[index].thread_id = -1;
 }
