@@ -42,13 +42,39 @@ void* worker_thread(void* arg) {
 
         // TODO: Execute actual Booking/Cancellation/Inquiry logic on events[event_id]
 
+        // Execute Query
+        if (type == INQUIRY) {
+            std::cout << "Thread " << id << " Inquiry result: Event " << event_id << " has " << events[event_id].available_seats << " seats.\n"; 
+        } 
+        else if (type == BOOKING) {
+            if (events[event_id].available_seats >= k) {
+                events[event_id].available_seats -= k; 
+                private_bookings.push_back({event_id, k}); 
+                std::cout << "Thread " << id << " Booking result: Success for Event " << event_id << " (" << k << " tickets).\n"; 
+            } else {
+                std::cout << "Thread " << id << " Booking result: Failed (Insufficient seats) for Event " << event_id << ".\n"; 
+            }
+        } 
+        else if (type == CANCELLATION) {
+            int idx = rand() % private_bookings.size(); 
+            int cancel_event = private_bookings[idx].event_id;
+            int cancel_tickets = private_bookings[idx].tickets_booked;
+            events[cancel_event].available_seats += cancel_tickets;
+            private_bookings.erase(private_bookings.begin() + idx);
+            std::cout << "Thread " << id << " Cancel result: Freed " << cancel_tickets << " tickets for Event " << cancel_event << ".\n"; 
+        }
+
         pthread_mutex_lock(&table_mutex);
-        remove_query_from_table(table_idx); // [cite: 123]
+        remove_query_from_table(table_idx);
         current_active_queries--;
-        pthread_cond_signal(&active_queries_cond); // Signal waiting threads [cite: 100, 143]
+        std::cout << "Thread " << id << " signaling (query complete).\n"; 
+        pthread_cond_signal(&active_queries_cond); 
         pthread_mutex_unlock(&table_mutex);
 
-        usleep(rand() % 50000 + 10000); // Sleep between queries [cite: 95]
+        usleep(rand() % 50000 + 10000); 
     }
+
+    std::cout << "Thread " << id << " terminating due to timeout.\n"; 
+    barrier_wait(&thread_barrier); 
     return NULL;
-}
+    }
