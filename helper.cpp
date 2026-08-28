@@ -108,7 +108,7 @@ void *worker_thread(void *arg)
         remove_query_from_table(table_idx);
         current_active_queries--;
         std::cout << "Thread " << id << " signaling (query complete).\n";
-        pthread_cond_signal(&active_queries_cond);
+        pthread_cond_broadcast(&active_queries_cond);
         pthread_mutex_unlock(&table_mutex);
 
         usleep(rand() % 50000 + 10000);
