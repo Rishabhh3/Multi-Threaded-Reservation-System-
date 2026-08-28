@@ -5,10 +5,11 @@
 #include <vector>
 #include <pthread.h>
 
-const int NUM_EVENTS = 100;
-const int CAPACITY = 500;
-const int MAX_ACTIVE_QUERIES = 5;
-const int NUM_THREADS = 20;
+extern int NUM_EVENTS;
+extern int CAPACITY;
+extern int MAX_ACTIVE_QUERIES;
+extern int NUM_THREADS;
+extern int RUN_DURATION_SEC;   // replaces hardcoded sleep(60)
 
 struct Event {
     int id;

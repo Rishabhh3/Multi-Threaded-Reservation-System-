@@ -1,9 +1,14 @@
-
 #include "shared_table.h"
 using namespace std;
-// Initialize global vectors
-vector<Event> events(NUM_EVENTS);
-vector<QueryEntry> shared_table(MAX_ACTIVE_QUERIES);
+
+int NUM_EVENTS = 100;
+int CAPACITY = 500;
+int MAX_ACTIVE_QUERIES = 5;
+int NUM_THREADS = 20;
+int RUN_DURATION_SEC = 60;
+
+vector<Event> events;         // empty at global init; resized in main()
+vector<QueryEntry> shared_table;
 
 // Initialize synchronization primitives
 pthread_mutex_t table_mutex = PTHREAD_MUTEX_INITIALIZER;
