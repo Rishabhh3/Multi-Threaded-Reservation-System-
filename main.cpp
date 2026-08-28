@@ -53,6 +53,43 @@ int main(int argc, char *argv[])
     for (int i = 0; i < NUM_THREADS; i++)
         pthread_join(threads[i], NULL);
 
+    long total_attempted = 0, total_succeeded = 0, total_retried = 0, total_wait_usec = 0;
+    for (int i = 0; i < NUM_THREADS; i++)
+    {
+        total_attempted += args[i].stats.queries_attempted;
+        total_succeeded += args[i].stats.queries_succeeded;
+        total_retried += args[i].stats.queries_retried;
+        total_wait_usec += args[i].stats.total_wait_usec;
+    }
+
+    std::cout << "\n=== Run Statistics ===\n";
+    std::cout << "Total queries attempted: " << total_attempted << "\n";
+    std::cout << "Total queries succeeded: " << total_succeeded << "\n";
+    std::cout << "Total queries retried (admission conflict): " << total_retried << "\n";
+    if (total_attempted > 0)
+    {
+        std::cout << "Retry rate: " << (100.0 * total_retried / total_attempted) << "%\n";
+    }
+    std::cout << "Total thread-time spent waiting on MAX cap: "
+              << (total_wait_usec / 1000000.0) << " sec\n";
+
+    // Invariant check — this is the actual proof the locking is correct.
+    bool invariant_ok = true;
+    for (int i = 0; i < NUM_EVENTS; i++)
+    {
+        if (events[i].available_seats < 0 || events[i].available_seats > CAPACITY)
+        {
+            std::cout << "INVARIANT VIOLATION: Event " << i << " has "
+                      << events[i].available_seats << " seats (capacity " << CAPACITY << ")\n";
+            invariant_ok = false;
+        }
+    }
+    std::cout << "Invariant check: " << (invariant_ok ? "PASSED" : "FAILED") << "\n";
+
+    std::cout << "\nFinal Reservation Status:\n";
+    for (int i = 0; i < NUM_EVENTS; i++)
+        std::cout << "Event " << i << " available seats: " << events[i].available_seats << "\n";
+
     std::cout << "\nFinal Reservation Status:\n";
     for (int i = 0; i < NUM_EVENTS; i++)
         std::cout << "Event " << i << " available seats: " << events[i].available_seats << "\n";

@@ -2,13 +2,22 @@
 #include <iostream>
 #include <unistd.h>
 #include <cstdlib>
+#include <sys/time.h> // for gettimeofday
 
 extern bool system_running;
+
+static long usec_since(const timeval &start)
+{
+    timeval now;
+    gettimeofday(&now, NULL);
+    return (now.tv_sec - start.tv_sec) * 1000000L + (now.tv_usec - start.tv_usec);
+}
 
 void *worker_thread(void *arg)
 {
     ThreadArg *t_arg = (ThreadArg *)arg;
     int id = t_arg->thread_id;
+    ThreadStats &stats = t_arg->stats;
     std::vector<BookingRecord> private_bookings;
 
     while (system_running)
@@ -19,9 +28,6 @@ void *worker_thread(void *arg)
         if (type == CANCELLATION && private_bookings.empty())
             type = INQUIRY;
 
-        // Decide the *actual* target event_id up front, before any admission
-        // check — for CANCELLATION this must be the event of the booking
-        // we're about to cancel, not an unrelated random pick.
         int event_id;
         int cancel_idx = -1;
         if (type == CANCELLATION)
@@ -34,12 +40,17 @@ void *worker_thread(void *arg)
             event_id = rand() % NUM_EVENTS;
         }
 
+        stats.queries_attempted++;
+
         pthread_mutex_lock(&table_mutex);
 
         while (current_active_queries >= MAX_ACTIVE_QUERIES && system_running)
         {
             std::cout << "Thread " << id << " waiting (MAX active).\n";
+            timeval wait_start;
+            gettimeofday(&wait_start, NULL);
             pthread_cond_wait(&active_queries_cond, &table_mutex);
+            stats.total_wait_usec += usec_since(wait_start);
         }
         if (!system_running)
         {
@@ -50,6 +61,7 @@ void *worker_thread(void *arg)
         if (!can_admit_query(event_id, type))
         {
             pthread_mutex_unlock(&table_mutex);
+            stats.queries_retried++;
             usleep(10000);
             continue;
         }
@@ -84,11 +96,13 @@ void *worker_thread(void *arg)
         else if (type == CANCELLATION)
         {
             int cancel_tickets = private_bookings[cancel_idx].tickets_booked;
-            events[event_id].available_seats += cancel_tickets; // same event_id as admission
+            events[event_id].available_seats += cancel_tickets;
             private_bookings.erase(private_bookings.begin() + cancel_idx);
             std::cout << "Thread " << id << " Cancel result: Freed " << cancel_tickets
                       << " tickets for Event " << event_id << ".\n";
         }
+
+        stats.queries_succeeded++;
 
         pthread_mutex_lock(&table_mutex);
         remove_query_from_table(table_idx);
