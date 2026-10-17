@@ -1,0 +1,6 @@
+# build output
+reservation_system
+*.o
+
+# benchmark output
+results.csv
